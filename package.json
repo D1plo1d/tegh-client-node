@@ -1,6 +1,7 @@
 {
     "name": "tegh-client-node"
   , "version": "0.0.0"
+  , "main": "lib/index.js"
   , "dependencies": {
     "express": "3.x"
     , "coffee-script": "1.7.x"
