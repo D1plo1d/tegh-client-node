@@ -92,12 +92,12 @@ module.exports = class DnsSd extends EventEmitter
       # event.address = service.address if service.type == 28
       continue unless service.class == 1 and service.type == 12
       continue unless service.data?
-      serviceName = service.data.split(".")[0].replace /\s\(\d+\)/, ""
+      name = service.data.split(".")[0].replace /\s\(\d+\)/, ""
       @_updateService
         address: rinfo.address
         hostname: null
-        serviceName: serviceName
-        path: "/printers/#{serviceName}/"
+        name: name
+        path: "/printers/#{name}/"
 
   _updateService: (service) =>
     # console.log service
@@ -109,7 +109,7 @@ module.exports = class DnsSd extends EventEmitter
     @emit "serviceUp", service
 
   _isSameService: (e1, e2) ->
-    e2.serviceName == e1.serviceName and e2.address == e1.address
+    e2.name == e1.name and e2.address == e1.address
 
   _removeService: (service) =>
     _.remove @services, _.partial(@_isSameService, service)
