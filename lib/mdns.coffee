@@ -13,7 +13,7 @@ EventEmitter = require('events').EventEmitter
 };`
 
 
-module.exports = class DnsSdDiscoverer extends EventEmitter
+module.exports = class MDNS extends EventEmitter
   multicastAddresses:
     udp4: "224.0.0.251"
     # udp6: "FF02::FB"
@@ -29,8 +29,6 @@ module.exports = class DnsSdDiscoverer extends EventEmitter
     @services = []
 
   start: ->
-    @start = Date.now()
-
     @makeAllMdnsRequests()
     @mdnsInterval = setInterval(@makeAllMdnsRequests, 25)
     return @
