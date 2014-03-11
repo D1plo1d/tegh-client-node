@@ -13,7 +13,7 @@ EventEmitter = require('events').EventEmitter
 };`
 
 
-module.exports = class MDNS extends EventEmitter
+module.exports = class DnsSd extends EventEmitter
   multicastAddresses:
     udp4: "224.0.0.251"
     # udp6: "FF02::FB"
@@ -77,6 +77,10 @@ module.exports = class MDNS extends EventEmitter
   stop: =>
     clearInterval @mdnsInterval
     @removeAllListeners
+    for service in @services
+      clearTimeout service.staleTimeout if service.staleTimeout?
+    @services = []
+    return @
 
   _onMessage: (buffer, rinfo) =>
     return if net.isIPv6 rinfo.address
