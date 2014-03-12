@@ -5,6 +5,7 @@ FormData = require 'form-data'
 fs = require 'fs-extra'
 flavoredPath = require ("flavored-path")
 _ = require('lodash')
+S = require('string')
 certs = require('./certs')
 
 module.exports = class Client extends EventEmitter
@@ -102,7 +103,7 @@ module.exports = class Client extends EventEmitter
     @opts.processEvent?(event) for event in messages
 
   processEvent: (event) =>
-    syncError = event.type == "error" and event.data.type.endsWith(".sync")
+    syncError = event.type == "error" and S(event.data.type).endsWith(".sync")
     @_unblock() if event.type == "ack" or syncError
     return if event.type == 'ack'
     target = event.target

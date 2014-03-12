@@ -5,6 +5,7 @@
   , "dependencies": {
       "coffee-script": "1.7.x"
     , "lodash": "*"
+    , "string": "*"
     , "request": "*"
     , "form-data": "git+https://github.com/D1plo1d/node-form-data.git"
     , "ws": "*"
