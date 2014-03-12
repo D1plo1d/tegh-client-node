@@ -122,6 +122,9 @@ module.exports = class Client extends EventEmitter
     @blocking = false
     @emit "unblocked"
 
+  close: =>
+    @ws.close()
+
   _onClose: =>
     @emit "close"
 
