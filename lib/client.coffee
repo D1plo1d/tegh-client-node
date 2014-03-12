@@ -35,7 +35,8 @@ module.exports = class Client extends EventEmitter
     .on('message', @_onMessage)
     .on('error', @_onError)
 
-  send: (msg) =>
+  send: (action, data) =>
+    msg = action: action, data: data
     @blocking = true
     try
       @_attemptSend(msg)
