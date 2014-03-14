@@ -124,10 +124,11 @@ module.exports = class Client extends EventEmitter
 
   close: =>
     try @ws.close()
+    @emit "close"
     @removeAllListeners()
 
   _onClose: =>
-    @emit "close"
+    @close()
 
   _onError: (e) =>
     @unauthorized = e.toString().indexOf("unexpected server response (401)") > -1
