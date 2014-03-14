@@ -27,6 +27,7 @@ startListening = ->
 
 onServiceUp = (service) ->
   console.log "DNS-SD Tegh advertisement found on #{service.address}."
+  tegh.discovery.stop()
   service.user = user
   service.password = password
   service.addCert = addCert

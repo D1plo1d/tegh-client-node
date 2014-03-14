@@ -35,6 +35,7 @@ module.exports = class Client extends EventEmitter
     .on('close', @_onClose)
     .on('message', @_onMessage)
     .on('error', @_onError)
+    .on('timeout', -> console.log "tim's out!")
 
   send: (action, data) =>
     msg = action: action, data: data
@@ -92,8 +93,7 @@ module.exports = class Client extends EventEmitter
       @emit "connect", @ws
     else
       @emit "error", @opts.address, @cert
-      @removeAllListeners()
-      @ws.close()
+      @close()
 
   _onInitialized: (data) =>
     @session_uuid = data.session.uuid
@@ -123,14 +123,15 @@ module.exports = class Client extends EventEmitter
     @emit "unblocked"
 
   close: =>
-    @ws.close()
+    try @ws.close()
+    @removeAllListeners()
 
   _onClose: =>
     @emit "close"
 
   _onError: (e) =>
     @unauthorized = e.toString().indexOf("unexpected server response (401)") > -1
-    @emit "error", e
-    @removeAllListeners()
-
+    if @unauthorized
+      @emit "error", e
+    @close()
 

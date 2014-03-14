@@ -27,33 +27,40 @@ module.exports = class DnsSd extends EventEmitter
 
   constructor: (@filter) ->
     @services = []
+    @_connections = []
 
   start: ->
+    @stop()
+    @_openSocket(type, address) for type, address of @multicastAddresses
     @makeAllMdnsRequests()
-    @mdnsInterval = setInterval(@makeAllMdnsRequests, 25)
+    @mdnsInterval = setInterval(@makeAllMdnsRequests, 500)
     return @
 
   makeAllMdnsRequests: =>
-    @_sockets = []
-    for type, address of @multicastAddresses
-      @_makeMdnsRequest type, address
-    setTimeout(_.partial(@_close, @_sockets), 2000)
+    @_makeMdnsRequest connection for connection in @_connections
+    # setTimeout(_.partial(@_close, @_connections), 2000)
 
-  _makeMdnsRequest: (type, address) =>
+  _openSocket: (type, address) =>
     server =
       port: @mdnsServer.port
       type: @mdnsServer.type
       address: address
-    question = dns.Question @dnsSdOpts
     dg = dgram.createSocket(type)
     socket = new UDPSocket dg, server
+    dg.on "message", @_onMessage
+    dg.ref()
+    @_connections.push socket: socket, server: server, dg: dg
+
+
+  _makeMdnsRequest: (connection) =>
+    question = dns.Question @dnsSdOpts
 
     req = dns.Request
       question: question
-      server: server
+      server: connection.server
       timeout: 2000
 
-    packet = new DnsPacket(socket)
+    packet = new DnsPacket(connection.socket)
     packet.timeout = 2000
     packet.header.id = random_integer()
     packet.header.rd = 1
@@ -62,23 +69,17 @@ module.exports = class DnsSd extends EventEmitter
     packet.authority = []
     packet.question = [req.question]
 
-    dg.on "message", @_onMessage
-
     packet.send()
-    dg.ref()
-    @_sockets.push dg
-
-  _close: (sockets) =>
-    for socket in sockets
-      socket.unref()
-      socket.close()
-    # console.log "Closing the MDNS discovery udp connections"
 
   stop: =>
     clearInterval @mdnsInterval
     @removeAllListeners
     for service in @services
       clearTimeout service.staleTimeout if service.staleTimeout?
+    for connection in @_connections
+      connection.dg.unref()
+      connection.dg.close()
+    @_connections = []
     @services = []
     return @
 
