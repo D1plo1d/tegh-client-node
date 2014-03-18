@@ -7,6 +7,7 @@ util = require('util')
 net = require('net')
 _ = require('lodash')
 EventEmitter = require('events').EventEmitter
+certs = require('./certs')
 
 `var random_integer = function() {
   return Math.floor(Math.random() * 50000 + 1);
@@ -26,6 +27,7 @@ module.exports = class DnsSd extends EventEmitter
     type: "PTR"
 
   constructor: (@filter) ->
+    @_knownHosts = certs.knownHosts()
     @services = []
     @_connections = []
 
@@ -105,6 +107,7 @@ module.exports = class DnsSd extends EventEmitter
     isSameFn = _.partial @_isSameService, service
     preExistingService = _.first(@services, isSameFn)[0]
     return @_updateTimeout preExistingService if preExistingService?
+    service.knownName = _.find(@_knownHosts, printer: service.name)?
     @services.push service
     @_updateTimeout service
     @emit "serviceUp", service

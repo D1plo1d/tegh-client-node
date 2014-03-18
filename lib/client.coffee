@@ -13,7 +13,7 @@ module.exports = class Client extends EventEmitter
 
   constructor: (@opts) ->
     defaultOpts =
-      processEvent: @processEvent
+      processEvent: undefined
       port: 2540
       address: null
       path: null
@@ -26,7 +26,6 @@ module.exports = class Client extends EventEmitter
     @host = @opts.address
     @host = "#{@opts.user}:#{@opts.password}@#{@host}" if @opts.user?
     url = "wss://#{@host}:#{@opts.port}#{@opts.path}socket"
-    @.on "initialized", @_onInitialized
     @ws = new WebSocket url,
       webSocketVersion: 8
       rejectUnauthorized: false
@@ -35,7 +34,7 @@ module.exports = class Client extends EventEmitter
     .on('close', @_onClose)
     .on('message', @_onMessage)
     .on('error', @_onError)
-    .on('timeout', -> console.log "tim's out!")
+    .on('timeout', -> @_onTimeout)
 
   send: (action, data) =>
     msg = action: action, data: data
@@ -86,21 +85,20 @@ module.exports = class Client extends EventEmitter
   _onOpen: =>
     @cert = @ws._sender._socket.getPeerCertificate()
     @cert.printer = @opts.path.split("/")[2]
-    @isKnownHost = _.find(@_knownHosts, @cert)?
-    if !@isKnownHost and @opts.addCert
+    @knownName = _.find(@_knownHosts, printer: @opts.name)?
+    @knownCert = _.find(@_knownHosts, @cert)?
+    if !@knownCert and _.isEqual @opts.cert, @cert
       certs.addCert(@cert)
-    if @isKnownHost or @opts.addCert
+      @knownCert = true
+    if @knownCert
       @emit "connect", @ws
     else
       @emit "error", @opts.address, @cert
       @close()
 
-  _onInitialized: (data) =>
-    @session_uuid = data.session.uuid
-
   _onMessage: (m) =>
     messages = JSON.parse m
-    @opts.processEvent?(event) for event in messages
+    (@opts.processEvent || @processEvent)?(event) for event in messages
 
   processEvent: (event) =>
     syncError = event.type == "error" and S(event.data.type).endsWith(".sync")
@@ -108,10 +106,15 @@ module.exports = class Client extends EventEmitter
     return if event.type == 'ack'
     target = event.target
     switch event.type
-      when 'initialized' then _.merge @data, event.data
+      when 'initialized'
+        v.id = k for k, v of event.data
+        _.merge @data, event.data
+        @session_uuid = @data.session.uuid
       when 'change' then _.merge @data[target], event.data
       when 'rm' then delete @data[target]
-      when 'add' then @data[target] = event.data
+      when 'add'
+        event.data.id = target
+        @data[target] = event.data
       when 'error'
         @emit "error", event.data.message
       else
@@ -136,3 +139,7 @@ module.exports = class Client extends EventEmitter
       @emit "error", e
     @close()
 
+  _onTimeout: (e) =>
+    @timedOut = true
+    @emit "error", "connection timeout"
+    @close()

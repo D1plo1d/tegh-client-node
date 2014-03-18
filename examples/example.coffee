@@ -3,9 +3,6 @@ util = require("./util")
 _ = require("lodash")
 
 user = process.argv[2]
-user = null if user == "--add-cert"
-addCert = false
-addCert ||= (arg == "--add-cert") for arg in process.argv[2..]
 client = null
 password = null
 
@@ -26,11 +23,11 @@ startListening = ->
   .start()
 
 onServiceUp = (service) ->
-  console.log "DNS-SD Tegh advertisement found on #{service.address}."
+  console.log "DNS-SD Tegh advertisement found on #{service.address}. " +
+  "Connecting..."
   tegh.discovery.stop()
   service.user = user
   service.password = password
-  service.addCert = addCert
   client = new tegh.Client(service)
   .on("initialized", onInit)
   .on("error", onError)
@@ -40,18 +37,30 @@ onServiceDown = ->
   console.log "down"
 
 onError = (e) ->
-  console.log "Error!"
+  console.log "Error!\n"
   if client.unauthorized
     console.log "\nUnauthorized. Try this:\n"
     console.log "  coffee example.coffee [USER]\n"
-  else if !client.isKnownHost
-    console.log "\nUnrecognized SSL Cert. This may be a result of hackers.\n"
-    console.log "If this is your first time connecting and you are not terribly"
-    console.log "concerned with security try this:\n"
-    console.log "  coffee example.coffee --add-cert\n"
+    process.exit()
+  else if client.knownName and !client.knownCert
+    console.log "The SSL Cert on your 3D printer has changed. This may be a "
+    console.log "result of l33t hax0rs.\n"
+    process.exit()
+  else if !client.knownName and !client.knownCert
+    console.log "You are attempting to connect to a new printer that has "
+    console.log "with an untrusted SSL certificate.\n"
+    console.log "Do not connect to this printer unless you are on a network"
+    console.log "you absolutely trust.\n"
+    console.log "SSL Fingerprint:\n"
+    console.log client.cert.modulus
+    console.log "\nWould you like to connect anyways? (y/n)"
+    util.getBoolean (val) ->
+      console.log if val then "y" else "n"
+      return process.exit() unless val
+      client.opts.cert = client.cert
+      onServiceUp client.opts
   else
     throw e
-  process.exit()
 
 onInit = ->
   console.log "Your 3D printer is now connect.\n"
