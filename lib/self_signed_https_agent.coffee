@@ -7,8 +7,6 @@ _ = require "lodash"
 # This HTTPS Agent allows us to verify a server's self-signed cert before
 # accepting the connection via a "cert" event that is emitted when the cert
 # is received.
-#
-# This requires a pentest
 module.exports = class SelfSignedHttpsAgent extends https.Agent
 
   constructor: (options = {}) ->
