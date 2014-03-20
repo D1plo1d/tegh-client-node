@@ -7,6 +7,7 @@ flavoredPath = require ("flavored-path")
 _ = require('lodash')
 S = require('string')
 certs = require('./certs')
+SelfSignedHttpsAgent = require("./self_signed_https_agent")
 
 module.exports = class Client extends EventEmitter
   blocking: false
@@ -23,12 +24,16 @@ module.exports = class Client extends EventEmitter
     @opts = _.defaults @opts, defaultOpts
     @data = {}
     @_knownHosts = certs.knownHosts()
+    @knownName = _.find(@_knownHosts, printer: @opts.name)?
     @host = @opts.address
     @host = "#{@opts.user}:#{@opts.password}@#{@host}" if @opts.user?
     url = "wss://#{@host}:#{@opts.port}#{@opts.path}socket"
+    agent = new SelfSignedHttpsAgent()
+    agent.once "cert", @_onCert
     @ws = new WebSocket url,
       webSocketVersion: 8
-      rejectUnauthorized: false
+      # rejectUnauthorized: false
+      agent: agent
     @ws
     .on('open', @_onOpen)
     .on('close', @_onClose)
@@ -82,19 +87,19 @@ module.exports = class Client extends EventEmitter
         @emit "ack", "Job added."
       @_unblock()
 
-  _onOpen: =>
-    @cert = @ws._sender._socket.getPeerCertificate()
+  _onCert: (@cert) =>
     @cert.printer = @opts.path.split("/")[2]
-    @knownName = _.find(@_knownHosts, printer: @opts.name)?
     @knownCert = _.find(@_knownHosts, @cert)?
-    if !@knownCert and _.isEqual @opts.cert, @cert
+    return if @knownCert
+    if @opts.cert? and _.isEqual @opts.cert, @cert
       certs.addCert(@cert)
       @knownCert = true
-    if @knownCert
-      @emit "connect", @ws
     else
       @emit "error", @opts.address, @cert
       @close()
+
+  _onOpen: =>
+      @emit "connect", @ws
 
   _onMessage: (m) =>
     messages = JSON.parse m
