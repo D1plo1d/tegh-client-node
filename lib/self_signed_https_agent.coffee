@@ -22,7 +22,7 @@ module.exports = class SelfSignedHttpsAgent extends https.Agent
     cleartextStream.on("secureConnect", cb)
 
   getName: ->
-    "#{agentProto.getName}:tegh"
+    "#{super.getName()}:tegh"
 
   _validatePeerCertificate: (cleartextStream) =>
     cert = cleartextStream.getPeerCertificate()
