@@ -21,8 +21,8 @@ module.exports = class SelfSignedHttpsAgent extends https.Agent
     cb = _.partial @_validatePeerCertificate, cleartextStream
     cleartextStream.on("secureConnect", cb)
 
-  getName: ->
-    "#{super.getName()}:tegh"
+  getName: (options) ->
+    "#{https.Agent.prototype.getName.call(this, options)}:tegh"
 
   _validatePeerCertificate: (cleartextStream) =>
     cert = cleartextStream.getPeerCertificate()
