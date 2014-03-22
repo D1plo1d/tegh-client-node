@@ -105,7 +105,7 @@ module.exports = class DnsSd extends EventEmitter
   _updateService: (service) =>
     # console.log service
     isSameFn = _.partial @_isSameService, service
-    preExistingService = _.first(@services, isSameFn)[0]
+    preExistingService = _.filter(@services, isSameFn)[0]
     return @_updateTimeout preExistingService if preExistingService?
     service.knownName = _.find(@_knownHosts, printer: service.name)?
     @services.push service
@@ -121,4 +121,4 @@ module.exports = class DnsSd extends EventEmitter
 
   _updateTimeout: (service) ->
     clearTimeout service.staleTimeout if service.staleTimeout?
-    service.staleTimeout = setTimeout(_.partial(@_removeService, service), 1000)
+    service.staleTimeout = setTimeout(_.partial(@_removeService, service), 5000)
