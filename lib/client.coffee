@@ -132,6 +132,10 @@ module.exports = class Client extends EventEmitter
 
   close: =>
     try @ws.close()
+    # Ignore errors after closing
+    try
+      @ws.removeAllListeners()
+      @ws.on "error", ->
     @emit "close"
     @removeAllListeners()
 
@@ -140,8 +144,7 @@ module.exports = class Client extends EventEmitter
 
   _onError: (e) =>
     @unauthorized = e.toString().indexOf("unexpected server response (401)") > -1
-    if @unauthorized
-      @emit "error", e
+    @emit "error", e
     @close()
 
   _onTimeout: (e) =>
