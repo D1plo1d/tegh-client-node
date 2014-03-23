@@ -94,6 +94,7 @@ module.exports = class Client extends EventEmitter
     if @opts.cert? and _.isEqual @opts.cert, @cert
       certs.addCert(@cert)
       @knownCert = true
+      @opts.knownName = true
     else
       @emit "error", @opts.address, @cert
       @close()
